@@ -2,6 +2,10 @@
 
 Generate migration file from an existing database.
 
+[oschina:http://git.oschina.net/hzhihua/yii2-dump](http://git.oschina.net/hzhihua/yii2-dump)  
+[github:https://github.com/Hzhihua/yii2-dump](https://github.com/Hzhihua/yii2-dump)
+ 
+
 ## Demo
 ![yii2-dump](https://raw.githubusercontent.com/wiki/Hzhihua/yii2-dump/yii2-dump.png)
 
@@ -15,7 +19,7 @@ Generate migration file from an existing database.
 composer require --prefer-dist "hzhihua/yii2-dump:~1.0"
 ```
 
-or add in composer.json (require-dev section)
+or add in composer.json (require section)
 ```
 "hzhihua/yii2-dump": "~1.0"
 ```
@@ -158,6 +162,6 @@ or
 - Primary key
 - ENUM type (for MySQL)
 
-## Not Supports
+## Not Supports 
 
 - AUTO_INCREMENT
