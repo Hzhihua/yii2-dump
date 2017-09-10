@@ -1,0 +1,24 @@
+{
+    "name": "hzhihua/yii2-dump",
+    "description": "Generate the schema from an existing database",
+    "keywords": ["yii2", "extension", "database", "command", "migration", "generator"],
+    "homepage": "https://github.com/Hzhihua/yii2-dump",
+    "type": "yii2-extension",
+    "license": "BSD-3",
+    "authors": [
+        {
+            "name": "Hzhihua",
+            "email": "1044144905@qq.com",
+            "homepage": "https://github.com/Hzhihua/yii2-dump",
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+        "yiisoft/yii2": "~2.0.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "hzhihua\\dump\\": "src"
+        }
+    }
+}
