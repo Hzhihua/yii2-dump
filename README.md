@@ -1,10 +1,9 @@
 # yii2-dump
 
-Generate migration file from an existing database.
+Generate migration file from an existing database
 
-[oschina:http://git.oschina.net/hzhihua/yii2-dump](http://git.oschina.net/hzhihua/yii2-dump)  
-[github:https://github.com/Hzhihua/yii2-dump](https://github.com/Hzhihua/yii2-dump)
- 
+> [github: https://github.com/Hzhihua/yii2-dump](https://github.com/Hzhihua/yii2-dump)  
+> [oschina: http://git.oschina.net/hzhihua/yii2-dump](http://git.oschina.net/hzhihua/yii2-dump)
 
 ## Demo
 ![yii2-dump](https://raw.githubusercontent.com/wiki/Hzhihua/yii2-dump/yii2-dump.png)
@@ -26,7 +25,7 @@ or add in composer.json (require section)
 
 ## Configuration
 
-Add the following in console/main.php:
+Add the following in console/config/main.php:
 
 ### Simple Configuration
 
@@ -47,7 +46,7 @@ return [
     'controllerMap' => [
         'dump' => [
             'class' => 'hzhihua\\dump\\DumpController',
-            'db' => [], // Connection
+            'db' => 'db', // Connection
             'templateFile' => '@vendor/hzhihua/yii2-dump/templates/migration.php',
             'generatePath' => '@console/migrations',
             'translations' => '' // i18n
@@ -64,6 +63,7 @@ return [
 ```tableOptions
 ENGINE=InnoDB CHARACTER SET=utf8 COLLATE=utf8_unicode_ci
 ```
+> it was defined at "@vendor/hzhihua/yii2-dump/src/Migration.php" file [see](src/Migration.php)
 
 ## Default Limit
 ```
@@ -163,7 +163,6 @@ or
 - COMMENT
 - Unique key
 - Foreign key
-- Composite primary keys
 - Primary key
 - ENUM type (for MySQL)
 
