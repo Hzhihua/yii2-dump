@@ -40,7 +40,7 @@ return [
 ];
 ```
 
-### Detail Configuration  [see](src/DoumController.php)
+### Detail Configuration  [see](src/DumpController.php)
 
 ```php
 return [
@@ -63,6 +63,11 @@ return [
 ## Default Table Options
 ```tableOptions
 ENGINE=InnoDB CHARACTER SET=utf8 COLLATE=utf8_unicode_ci
+```
+
+## Default Limit
+```
+0,1000
 ```
 
 ## Default Filter Table
