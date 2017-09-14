@@ -1,11 +1,9 @@
 <?php
 /**
- * Author: Hzhihua
- * Date: 17-9-7
- * Time: 下午12:18
- * Hzhihua <1044144905@qq.com>
- */
-/**
+ * @Author: Hzhihua
+ * @Date: 17-9-7 12:18
+ * @Email cnzhihua@gmail.com
+ *
  * This view is used by console/controllers/MigrateController.php
  * The following variables are available in this view:
  */

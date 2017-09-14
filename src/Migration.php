@@ -1,9 +1,8 @@
 <?php
 /**
- * Author: Hzhihua
- * Date: 17-9-7
- * Time: 下午12:18
- * Hzhihua <1044144905@qq.com>
+ * @Author: Hzhihua
+ * @Date: 17-9-7 12:18
+ * @Email cnzhihua@gmail.com
  */
 
 namespace hzhihua\dump;
@@ -23,10 +22,16 @@ class Migration extends \yii\db\Migration
      * enter 换行符号
      */
     const ENTER = PHP_EOL;
+
     /**
      * @var string table additional options
      */
     public $tableOptions = '';
+
+    /**
+     * @var array record which sql run successfully
+     */
+    protected $runSuccess = [];
 
     /**
      * @var null save transaction for insert table data

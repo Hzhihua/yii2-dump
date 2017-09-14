@@ -1,9 +1,8 @@
 <?php
 /**
- * Author: Hzhihua
- * Date: 17-9-7
- * Time: 下午12:18
- * Hzhihua <1044144905@qq.com>
+ * @Author: Hzhihua
+ * @Date: 17-9-7 12:18
+ * @Email cnzhihua@gmail.com
  */
 
 namespace hzhihua\dump\exceptions;

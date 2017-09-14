@@ -1,9 +1,8 @@
 <?php
 /**
- * Author: Hzhihua
- * Date: 17-9-7
- * Time: 下午12:18
- * Hzhihua <1044144905@qq.com>
+ * @Author: Hzhihua
+ * @Date: 17-9-7 12:18
+ * @Email cnzhihua@gmail.com
  */
 
 namespace hzhihua\dump\models;
@@ -67,13 +66,13 @@ class Schema extends AbstractSchema
      */
     public function getTable(TableSchema $table, $indent = 0)
     {
-        $safeUp =
+        $definition =
             $this->getCreateTable($table->name, $indent)
             . $this->getColumns($table->columns, $indent + 1)
             . $this->getTableOptions($table, $indent)
         ;
 
-        return $safeUp;
+        return $definition;
     }
 
     /**
@@ -84,8 +83,25 @@ class Schema extends AbstractSchema
      */
     public function getDropTable(TableSchema $table, $indent = 0)
     {
+        // Do not run this sql: "drop table `tableName`", it will drop the table that has exists before running "./yii migrate"
+
+        $textIndent = $this->textIndent($indent);
         $tableName = static::removePrefix($table->name, $this->db->tablePrefix);
-        return $this->textIndent($indent) . "\$this->dropTable('{{%$tableName}}');" . self::ENTER;
+
+        $definition = <<<DEFINITION
+{$textIndent}foreach (\$this->runSuccess as \$keyName => \$value) {
+{$textIndent}    if ('createTable' === \$keyName) {
+{$textIndent}        \$this->dropTable('{{%$tableName}}');
+{$textIndent}    } elseif ('addTableComment' === \$keyName) {
+{$textIndent}        \$this->dropCommentFromTable('{{%$tableName}}');
+{$textIndent}    } else {
+{$textIndent}        throw new \yii\db\Exception('some errors in:' . __FILE__);
+{$textIndent}    }
+{$textIndent}}
+DEFINITION;
+
+        return $definition;
+
     }
 
     /**
@@ -106,7 +122,7 @@ class Schema extends AbstractSchema
         $_limit = '';
         $batchInsertLength = 500;
         $textIndent = $this->textIndent($indent);
-        $batchInsertSql = $textIndent . '$this->_transaction = $this->getDb()->beginTransaction();' . self::ENTER;
+        $definition = $textIndent . '$this->_transaction = $this->getDb()->beginTransaction();' . self::ENTER;
 
         if (is_bool($limit)) { // -limit
             $_limit = [null, null]; // select all data
@@ -154,11 +170,11 @@ class Schema extends AbstractSchema
                 //     [$columns],
                 //     [$insertData]
                 // );
-                $batchInsertSql .= $textIndent;
-                $batchInsertSql .= "\$this->batchInsert('{{%$tableName}}', " . self::ENTER;
-                $batchInsertSql .= $columns . ', ' . self::ENTER;
-                $batchInsertSql .= $insertData . self::ENTER;
-                $batchInsertSql .= $textIndent . ');' . self::ENTER;
+                $definition .= $textIndent;
+                $definition .= "\$this->batchInsert('{{%$tableName}}', " . self::ENTER;
+                $definition .= $columns . ', ' . self::ENTER;
+                $definition .= $insertData . self::ENTER;
+                $definition .= $textIndent . ');' . self::ENTER;
             }
 
         } else {
@@ -174,16 +190,16 @@ class Schema extends AbstractSchema
             //     [$columns],
             //     [$insertData]
             // );
-            $batchInsertSql .= $textIndent;
-            $batchInsertSql .= "\$this->batchInsert('{{%$tableName}}', " . self::ENTER;
-            $batchInsertSql .= $columns . ', ' . self::ENTER;
-            $batchInsertSql .= $insertData . self::ENTER;
-            $batchInsertSql .= $textIndent . ');' . self::ENTER;
+            $definition .= $textIndent;
+            $definition .= "\$this->batchInsert('{{%$tableName}}', " . self::ENTER;
+            $definition .= $columns . ', ' . self::ENTER;
+            $definition .= $insertData . self::ENTER;
+            $definition .= $textIndent . ');' . self::ENTER;
         }
 
-        $batchInsertSql .= $textIndent . '$this->_transaction->commit();' . self::ENTER;
+        $definition .= $textIndent . '$this->_transaction->commit();' . self::ENTER;
 
-        return $batchInsertSql;
+        return $definition;
 
     }
 
@@ -197,11 +213,11 @@ class Schema extends AbstractSchema
     {
         // Do not use "truncate tableName", it will delete all data of table, include data before you run "./yii migrate" commond
 
-        $safeDown = $this->textIndent($indent);
-        $safeDown .= '$this->_transaction->rollBack();';
-        $safeDown .= self::ENTER;
+        $definition = $this->textIndent($indent);
+        $definition .= '$this->_transaction->rollBack();';
+        $definition .= self::ENTER;
 
-        return $safeDown;
+        return $definition;
     }
 
     /**
@@ -212,7 +228,7 @@ class Schema extends AbstractSchema
      */
     public function getKey(TableSchema $table, $indent = 0)
     {
-        $keySql = '';
+        $definition = '';
         $textIndent = $this->textIndent($indent);
         $tableName = static::removePrefix($table->name, $this->db->tablePrefix);
 
@@ -223,24 +239,25 @@ class Schema extends AbstractSchema
             $columns = null;
             $isUnique = null;
             foreach ($value as $columnName => $nonUnique) {
-                $isUnique = $nonUnique ? 0 : 1;
                 $columns .= $columnName . ',';
             }
+            $isUnique = $nonUnique ? 0 : 1;
             $columns = rtrim($columns, ',');
 
-            $keySql .= $textIndent; // text-indent 缩进
+            $definition .= $textIndent; // text-indent 缩进
+            $definition .= "\$this->runSuccess['$keyName'] = "; // record which key add successfully
 
             if ('PRIMARY' === $keyName) { // add primary key
-                $keySql .= "\$this->addPrimaryKey('', '{{%$tableName}}', '$columns');";
+                $definition .= "\$this->addPrimaryKey(null, '{{%$tableName}}', '$columns');";
             } else {
-                $keySql .= "\$this->createIndex('$keyName', '{{%$tableName}}', '$columns', $isUnique);";
+                $definition .= "\$this->createIndex('$keyName', '{{%$tableName}}', '$columns', $isUnique);";
             }
 
-            $keySql .= self::ENTER;
+            $definition .= self::ENTER;
 
         }
 
-        return $keySql;
+        return $definition;
     }
 
     /**
@@ -251,26 +268,21 @@ class Schema extends AbstractSchema
      */
     public function getDropKey(TableSchema $table, $indent = 0)
     {
-        $keySql = '';
+        $textIndent = $this->textIndent($indent);
         $tableName = static::removePrefix($table->name, $this->db->tablePrefix);
 
-        $data = $this->db->createCommand('SHOW KEYS FROM ' . $table->name)->queryAll();
-        $keys = ArrayHelper::map($data, 'Column_name', 'Non_unique', 'Key_name');
+        $definition = <<<DEFINITION
+{$textIndent}foreach (\$this->runSuccess as \$keyName => \$value) {
+{$textIndent}    if ('PRIMARY' === \$keyName) {
+{$textIndent}        \$this->dropPrimaryKey(null, '{{%$tableName}}');
+{$textIndent}    } else {
+{$textIndent}        \$this->dropIndex(\$keyName, '{{%$tableName}}');
+{$textIndent}    }
+{$textIndent}}
+DEFINITION;
 
-        foreach ($keys as $keyName => $value) {
-            $keySql .= $this->textIndent($indent);
+        return $definition . self::ENTER;
 
-            if ('PRIMARY' === $keyName) { // remove primary key
-                $keySql .= "\$this->dropPrimaryKey('', '{{%$tableName}}');";
-            } else {
-                $keySql .= "\$this->dropIndex('$keyName', '{{%$tableName}}');";
-            }
-
-            $keySql .= self::ENTER;
-
-        }
-
-        return $keySql;
     }
 
     /**
@@ -285,8 +297,9 @@ class Schema extends AbstractSchema
             return '';
         }
 
-        $definition = '';
         $textIndent = $this->textIndent($indent);
+        $definition = $textIndent;
+        $definition .= '$tablePrefix = \Yii::$app->getDb()->tablePrefix;' . self::ENTER;
         $tableName = static::removePrefix($table->name, $this->db->tablePrefix);
 
         foreach ($table->foreignKeys as $fkName => $fk) {
@@ -304,8 +317,10 @@ class Schema extends AbstractSchema
                 }
             }
 
-            $definition .= $textIndent . sprintf(
-                    "\$this->addForeignKey(\\Yii::\$app->getDb()->tablePrefix.'%s', '{{%%%s}}', '%s', '{{%%%s}}', '%s');" . self::ENTER,
+            $definition .= $textIndent;
+            $definition .= "\$this->runSuccess[\$tablePrefix.'{$fkName}'] = ";
+            $definition .= sprintf(
+                    "\$this->addForeignKey(\$tablePrefix.'%s', '{{%%%s}}', '%s', '{{%%%s}}', '%s');" . self::ENTER,
                     $fkName, // 外健名称
                     $tableName, // 表名
                     $columns, // 列名
@@ -329,21 +344,18 @@ class Schema extends AbstractSchema
             return '';
         }
 
-        $definition = '';
         $textIndent = $this->textIndent($indent);
         $tableName = static::removePrefix($table->name, $this->db->tablePrefix);
 
-        foreach ($table->foreignKeys as $fkName => $fk) {
-            $fkName = static::removePrefix($fkName, $this->db->tablePrefix);
+        $definition = <<<DEFINITION
+{$textIndent}\$tablePrefix = \\Yii::\$app->getDb()->tablePrefix;
+{$textIndent}foreach (\$this->runSuccess as \$keyName => \$value) {
+{$textIndent}    \$this->dropForeignKey(\$tablePrefix.\$keyName, '{{%$tableName}}');
+{$textIndent}}
+DEFINITION;
 
-            $definition .= $textIndent . sprintf(
-                    "\$this->dropForeignKey(\\Yii::\$app->getDb()->tablePrefix.'%s', '{{%%%s}}');" . self::ENTER,
-                    $fkName, // 外健名称
-                    $tableName // 表名
-                );
+        return $definition . self::ENTER;
 
-        }
-        return $definition;
     }
 
     /**
@@ -388,7 +400,7 @@ class Schema extends AbstractSchema
         } else {  // get rows data
             foreach ($array as $key => $value) {
                 if (null === $value) {
-                    $string .= 'NULL, ';
+                    $string .= 'null, ';
                 } elseif (is_int($value)) {
                     $string .= $value . ', ';
                 }else {
@@ -420,8 +432,12 @@ class Schema extends AbstractSchema
     public function getCreateTable($tableName, $indent = 0)
     {
         $tableName = static::removePrefix($tableName, $this->db->tablePrefix);
-        $stdout = $this->textIndent($indent) . "\$this->createTable('{{%$tableName}}', [" . self::ENTER;
-        return $stdout;
+        $textIndent = $this->textIndent($indent);
+
+        $definition = $textIndent . '$this->runSuccess[\'createTable\'] = ';
+        $definition .= "\$this->createTable('{{%$tableName}}', [" . self::ENTER;
+
+        return $definition;
     }
 
     /**
@@ -513,11 +529,12 @@ class Schema extends AbstractSchema
         }
 
         $textIndent = $this->textIndent($indent);
+        $definition = $textIndent . '$this->runSuccess[\'addTableComment\'] = ';
         $tableName = static::removePrefix($table->name, $this->db->tablePrefix);
 
         foreach ($this->_tableStatus as $value) {
             if ($table->name === $value['Name'] && ! empty($value['Comment'])) {
-                return $textIndent . "\$this->addCommentOnTable('{{%$tableName}}', '{$value['Comment']}');";
+                return $definition . "\$this->addCommentOnTable('{{%$tableName}}', '{$value['Comment']}');";
             }
         }
 
@@ -539,10 +556,6 @@ class Schema extends AbstractSchema
                 return 'smallInteger()';
             }
             return 'integer()';
-//            if ('bigint' === $column->type) {
-//                return 'bigPrimaryKey()';
-//            }
-//            return 'primaryKey()';
         }
 
         // boolean
