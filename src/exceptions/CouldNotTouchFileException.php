@@ -10,6 +10,11 @@ namespace hzhihua\dump\exceptions;
 
 use yii\console\Exception;
 
+/**
+ * Class CouldNotTouchFileException
+ * @package hzhihua\dump\exceptions
+ * @Author Hzhihua <cnzhihua@gmail.com>
+ */
 class CouldNotTouchFileException extends Exception
 {
     /**

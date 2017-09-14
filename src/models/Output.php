@@ -15,8 +15,18 @@ use hzhihua\dump\exceptions\CouldNotTouchFileException;
 use hzhihua\dump\exceptions\CouldNotMkdirDirectoryException;
 use yii\helpers\Console;
 
+/**
+ * Class Output
+ * @package hzhihua\dump\models
+ * @Author Hzhihua <cnzhihua@gmail.com>
+ */
 class Output extends AbstractOutput
 {
+    /**
+     * enter 换行符号
+     */
+    const ENTER = PHP_EOL;
+
     /**
      * record start time with float
      * @var array
@@ -78,7 +88,7 @@ class Output extends AbstractOutput
 
         $this->startTime[$string] = microtime(true);
 
-        $this->stdout('/*** Begin '. $string . " ***/\n", 0, Console::FG_YELLOW);
+        $this->stdout('/*** Begin '. $string . " ***/" . self::ENTER, 0, Console::FG_YELLOW);
 
         return 0;
     }
@@ -97,7 +107,7 @@ class Output extends AbstractOutput
         $time = $this->endTime[$string] - $this->startTime[$string];
 
         $this->stdout(
-            '/*** End ' . $string . ' ... done (time: ' . sprintf("%.3f", $time) . "s) ***/\n\n",
+            '/*** End ' . $string . ' ... done (time: ' . sprintf("%.3f", $time) . "s) ***/" . self::ENTER . self::ENTER,
                 0,
                 Console::FG_GREEN
             );
@@ -105,25 +115,21 @@ class Output extends AbstractOutput
         return 0;
     }
 
+    /**
+     * print conclusion at the terminal
+     * @param $handleTable all table name that had been generate
+     * @param $filterTable all table name that had been filter
+     */
     public function conclusion($handleTable, $filterTable)
     {
-        $handleTableString = '';
-        $filterTableString = '';
+        $enter = self::ENTER;
         $handleNumber = count($handleTable);
         $filterNumber = count($filterTable);
+        $handleTableString = implode($handleTable, ', ');
+        $filterTableString = implode($filterTable, ', ');
         $tables = Yii::t('dump', 'Tables');
         $handle = Yii::t('dump', 'Handle');
         $filter = Yii::t('dump', 'Filter');
-
-        foreach ($handleTable as $tableName) {
-            $handleTableString .= $tableName . ', ';
-        }
-        $handleTableString = rtrim($handleTableString, ', ');
-
-        foreach ($filterTable as $tableName) {
-            $filterTableString .= $tableName . ', ';
-        }
-        $filterTableString = rtrim($filterTableString, ', ');
 
 
         $header = <<<HEADER
@@ -135,12 +141,12 @@ HEADER;
 
         $footer = <<<FOOTER
         
-/************ Conclusion *********/\n
+/************ Conclusion *********/$enter
 FOOTER;
 
         $handle = <<<HANDLE
 /*** $handle $handleNumber $tables: */
->>> $handleTableString\n
+>>> $handleTableString$enter
 HANDLE;
 
         $filter = <<<FILTER

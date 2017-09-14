@@ -11,6 +11,11 @@ namespace hzhihua\dump\exceptions;
 
 use yii\console\Exception;
 
+/**
+ * Class CouldNotMkdirDirectoryException
+ * @package hzhihua\dump\exceptions
+ * @Author Hzhihua <cnzhihua@gmail.com>
+ */
 class CouldNotMkdirDirectoryException extends Exception
 {
     /**

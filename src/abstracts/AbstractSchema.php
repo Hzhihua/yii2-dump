@@ -16,6 +16,7 @@ use yii\db\TableSchema;
  * Class abstractDump
  * @property Connection $db
  * @package hzhihua\dump\Models
+ * @Author Hzhihua <cnzhihua@gmail.com>
  */
 abstract class AbstractSchema extends Component
 {

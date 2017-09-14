@@ -49,11 +49,10 @@ return [
             'db' => 'db', // Connection
             'templateFile' => '@vendor/hzhihua/yii2-dump/templates/migration.php',
             'generatePath' => '@console/migrations',
-            'translations' => '' // i18n
             'table' => 'table1,table2', // select which table will be dump(default filter migration table)
             'filter' => 'table3,table4', // table3 and table4 will be filtered when generating migration file
             'limit' => '0,1000', // select * from tableName limit 0,1000
-            ... ...
+            // ... ...
         ],
     ],
 ];

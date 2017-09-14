@@ -8,13 +8,13 @@
     "authors": [
         {
             "name": "Hzhihua",
-            "email": "1044144905@qq.com",
+            "email": "cnzhihua@gmail.com",
             "homepage": "https://github.com/Hzhihua/yii2-dump"
         }
     ],
     "require": {
         "php": ">=5.4.0",
-        "yiisoft/yii2": "~2.0.9"
+        "yiisoft/yii2": "~2.0.6"
     },
     "autoload": {
         "psr-4": {

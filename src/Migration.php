@@ -14,13 +14,24 @@ use hzhihua\dump\models\Output;
 /**
  * Migration class file.
  * all migration file generated extends this file
+ * @property yii\db\Transaction $_transaction
+ * @Author Hzhihua <cnzhihua@gmail.com>
  */
 class Migration extends \yii\db\Migration
 {
     /**
+     * enter 换行符号
+     */
+    const ENTER = PHP_EOL;
+    /**
      * @var string table additional options
      */
     public $tableOptions = '';
+
+    /**
+     * @var null save transaction for insert table data
+     */
+    protected $_transaction = null;
 
     /**
      * @inheritdoc
@@ -42,30 +53,22 @@ class Migration extends \yii\db\Migration
      */
     public function up()
     {
-        Output::stdout("*** beginTransaction\n", 0, Console::FG_YELLOW);
-        $transaction = $this->db->beginTransaction();
-
         try {
+            Output::stdout('*** running safeUp' . self::ENTER, 0, Console::FG_YELLOW);
             $this->safeUp();
-            Output::stdout("*** commit Transaction\n", 0, Console::FG_YELLOW);
-            $transaction->commit();
             return true;
 
         } catch (Exception $e) {
 
             try {
-                Output::stdout("\n*** running safeDown\n", 0, Console::FG_YELLOW);
+                Output::stdout(self::ENTER . '*** running safeDown' . self::ENTER, 0, Console::FG_YELLOW);
                 $this->safeDown();
-
             } catch (Exception $_e) {
 
             }
 
-            Output::stdout("\n*** rollBackTransaction", 0, Console::FG_YELLOW);
-            $transaction->rollBack();
-
-            Output::stdout("\n*** Error: ", 1, Console::FG_RED);
-            throw new Exception($e->getMessage());
+            Output::stdout(self::ENTER . '*** Error: ', 1, Console::FG_RED);
+            throw new Exception($e->getMessage(), $e->errorInfo, 1);
         }
 
     }

@@ -17,8 +17,14 @@ echo "<?php\n";
 
 use hzhihua\dump\Migration;
 
+/**
+ * Class <?= $className . PHP_EOL?>
+ * @property yii\db\Transaction $_transaction
+ * @Author Hzhihua <cnzhihua@gmail.com>
+ */
 class <?= $className ?> extends Migration
 {
+
 	/**
      * @inheritdoc
      */

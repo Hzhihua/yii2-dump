@@ -1,9 +1,8 @@
 <?php
 /**
- * Author: Hzhihua
- * Date: 17-9-7
- * Time: 下午12:18
- * Hzhihua <1044144905@qq.com>
+ * @Author: Hzhihua
+ * @Date: 17-9-7 12:18
+ * @Author Hzhihua <cnzhihua@gmail.com>
  */
 
 return [
@@ -18,7 +17,7 @@ return [
     'Drop Table' => '删除数据库表',
 
     'Insert Data Of Table' => '添加数据在数据库表',
-    'Drop Data Of Table' => '清空数据在数据库表',
+    'Drop Data Of Table' => '删除数据在数据库表',
 
     'Add Key Of Table' => '添加索引在数据库表',
     'Drop Key Of Table' => '删除索引在数据库表',

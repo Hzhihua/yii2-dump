@@ -11,6 +11,11 @@ namespace hzhihua\dump\abstracts;
 use yii\base\Component;
 use yii\helpers\Console;
 
+/**
+ * Class AbstractOutput
+ * @package hzhihua\dump\abstracts
+ * @Author Hzhihua <cnzhihua@gmail.com>
+ */
 abstract class AbstractOutput extends Component
 {
 
@@ -37,6 +42,11 @@ abstract class AbstractOutput extends Component
      */
     abstract public function endPrintf($string);
 
+    /**
+     * print conclusion at the terminal
+     * @param $handleTable all table name that had been generate
+     * @param $filterTable all table name that had been filter
+     */
     abstract public function conclusion($handleTable, $filterTable);
 
     /**

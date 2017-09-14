@@ -17,13 +17,109 @@ use yii\console\Controller;
 use hzhihua\dump\models\Schema;
 
 /**
- * Class dumpController
+ * ## Configuration in *console/config/main.php*
+ * ```
+ * return [
+ *     'controllerMap' => [
+ *         'dump' => [
+ *             'class' => 'hzhihua\\dump\\DumpController',
+ *             'db' => 'db', // Connection
+ *             'templateFile' => '@vendor/hzhihua/yii2-dump/templates/migration.php',
+ *             'generatePath' => '@console/migrations',
+ *             'table' => 'table1,table2', // select which table will be dump(default filter migration table)
+ *             'filter' => 'table3,table4', // table3 and table4 will be filtered when generating migration file
+ *             'limit' => '0,1000', // select * from tableName limit 0,1000
+ *             // ... ...
+ *         ],
+ *     ],
+ * ];
+ * ```
  *
- * terminal printf color: http://www.cnblogs.com/clover-toeic/p/4031618.html
+ * ## Default Table Options
+ * > ENGINE=InnoDB CHARACTER SET=utf8 COLLATE=utf8_unicode_ci
+ * it was defined at "@vendor/hzhihua/yii2-dump/src/Migration.php" file
+ * 
+ * ## Default Limit
+ * ```
+ * 0,1000
+ * ```
+ * 
+ * ## Default Filter Table
+ * > migration
  *
+ *
+ * ## Commands
+ * 
+ * Check help
+ * ```
+ * ./yii help dump
+ * ```
+ * 
+ * print all over the table name without table prefix
+ * ```
+ * ./yii dump/list
+ * ```
+ *
+ * generate all over the table migration file(default filter migration table)
+ * ```
+ * ./yii dump
+ * or
+ * ./yii dump/generate
+ * ```
+ * 
+ * generate all over the table migration file but it only had some data between 0 and 10
+ * ```
+ * ./yii dump -limit=10
+ * ```
+ *
+ * only generate table1,table2 migration file
+ * ```
+ * ./yii dump -table=table1,table2
+ * ```
+ * 
+ * only generate table1,table2 migration file and only table1 will be dumped table data
+ * ```
+ * ./yii dump -table=table1,table2 -data=table1
+ * ```
+ * 
+ * generate all over the migration table file without table1,table2
+ * ```
+ * ./yii dump -filter=table1,table2
+ * ```
+ * 
+ * print all over the code of migration table file(default filter migration table)
+ * ```
+ * ./yii dump/create
+ * ```
+ * 
+ * Display the 'createTable' code at the terminal.
+ * ```
+ * ./yii dump/create
+ * ```
+ * 
+ * Display the 'dropTable' code at the terminal.
+ * ```
+ * ./yii dump/drop
+ * ```
+ * 
+ * -type params
+ * ```
+ * ./yii dump -type=0/1/2/3
+ * >>> -type=0 generate table migration file,
+ * >>> -type=1 generate table data migration file,
+ * >>> -type=2 generate add key migration file,
+ * >>> -type=3 generate add foreign key migration file
+ * ```
+ * 
+ * Useful commands (for macOS user):
+ * ```
+ * ./yii dump | pbcopy
+ * ./yii dump/drop | pbcopy
+ * ```
  * @package hzhihua\dump
  * @property \hzhihua\dump\abstracts\AbstractSchema $schema
  * @property \hzhihua\dump\abstracts\AbstractOutput $output
+ * @Author Hzhihua <cnzhihua@gmail.com>
  */
 class DumpController extends Controller
 {
@@ -439,28 +535,25 @@ class DumpController extends Controller
 
     /**
      * check
-     * ```php
-     * ./yii dump -limit # dump all table and dump all data beside migration table
-     * ./yii dump -table=table1,table2 -limit
-     * ./yii dump -table=table1,table2 -data=table1 -limit
-     * ./yii dump -filter=table1,table2 -limit
-     * ./yii dump -filter=table1,table2 -data=table3 -limit
+     * ```
+     * ./yii dump -limit # generate all table file and dump all data beside migration table
+     * ./yii dump -table=table1,table2 -limit # dump and generate all data of table1,table2
+     * ./yii dump -table=table1,table2 -data=table1 -limit # generate table1,table2 migration file and dump all data of table1
+     * ./yii dump -filter=table1,table2 -limit # generate migration file beside table1,table2 and dump all data beside table1,table2
+     * ./yii dump -filter=table1,table2 -data=table3 -limit # generate migration file beside table1,table2 and dump all data of table3
      * ```
      * @param $tableName
      * @return bool|string
      */
     public function checkLimit($tableName)
     {
-        $dumpData = $this->getOptions($this->dumpData);
         if (null !== $this->limit) {
             if (! empty($this->dumpData)) {
-                if (in_array($tableName, $dumpData)) {
-                    return $this->limit;
-                } else {
+                $dumpData = $this->getOptions($this->dumpData);
+                if (! in_array($tableName, $dumpData)) {
                     return false;
                 }
             }
-
             return $this->limit;
         }
 
@@ -513,10 +606,8 @@ class DumpController extends Controller
 
     /**
      * change order of applying file
-     * ```
-     * ./yii migrate
-     * ```
-     * @see $
+     * 改变"./yii migrate"应用migration文件的顺序
+     *
      * @param $functionName
      * @return false|int
      */
@@ -616,10 +707,10 @@ class DumpController extends Controller
         if (empty($filterTable) && empty($optionsTable)) {
             // filter migration table
             if ($tableName !== $this->schema->addPrefix($this->migrationTable, $this->db->tablePrefix)) {
-                // 记录所有已经 生成 的数据库表
 
                 $tableName = $this->schema->removePrefix($tableName, $this->db->tablePrefix);
                 if (! in_array($tableName, $this->generations) ) {
+                    // 记录所有已经 生成 的数据库表
                     $this->generations[] = $tableName;
                 }
                 return false;
@@ -630,6 +721,7 @@ class DumpController extends Controller
 
                 $tableName = $this->schema->removePrefix($tableName, $this->db->tablePrefix);
                 if (! in_array($tableName, $this->generations) ) {
+                    // 记录所有已经 生成 的数据库表
                     $this->generations[] = $tableName;
                 }
                 return false;
@@ -640,6 +732,7 @@ class DumpController extends Controller
 
                 $tableName = $this->schema->removePrefix($tableName, $this->db->tablePrefix);
                 if (! in_array($tableName, $this->generations) ) {
+                    // 记录所有已经 生成 的数据库表
                     $this->generations[] = $tableName;
                 }
                 return false;
@@ -650,6 +743,7 @@ class DumpController extends Controller
 
                 $tableName = $this->schema->removePrefix($tableName, $this->db->tablePrefix);
                 if (! in_array($tableName, $this->generations) ) {
+                    // 记录所有已经 生成 的数据库表
                     $this->generations[] = $tableName;
                 }
 
@@ -657,7 +751,7 @@ class DumpController extends Controller
             }
         }
 
-        // 记录所有已经过滤的数据库表
+        // 记录所有已经 过滤 的数据库表
         $tableName = $this->schema->removePrefix($tableName, $this->db->tablePrefix);
         if (! in_array($tableName, $this->filters) ) {
             $this->filters[] = $tableName;
