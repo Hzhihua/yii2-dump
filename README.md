@@ -15,12 +15,7 @@ Generate migration file from an existing database
 ## Installation
 
 ```
-composer require --prefer-dist "hzhihua/yii2-dump:~1.0"
-```
-
-or add in composer.json (require section)
-```
-"hzhihua/yii2-dump": "~1.0"
+composer require --prefer-dist hzhihua/yii2-dump
 ```
 
 ## Configuration
