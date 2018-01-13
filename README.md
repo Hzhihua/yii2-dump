@@ -164,7 +164,8 @@ or
 - Foreign key
 - Primary key
 - ENUM type (for MySQL)
+- AUTO_INCREMENT
 
 ## Not Supports 
+~~AUTO_INCREMENT~~
 
-- AUTO_INCREMENT

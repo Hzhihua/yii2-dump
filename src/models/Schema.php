@@ -12,7 +12,6 @@ use yii\db\Query;
 use yii\db\TableSchema;
 use yii\db\Expression;
 use yii\db\ColumnSchema;
-use yii\helpers\ArrayHelper;
 use hzhihua\dump\abstracts\AbstractSchema;
 
 /**
@@ -233,28 +232,31 @@ DEFINITION;
         $tableName = static::removePrefix($table->name, $this->db->tablePrefix);
 
         $data = $this->db->createCommand('SHOW KEYS FROM ' . $table->name)->queryAll();
-        $keys = ArrayHelper::map($data, 'Column_name', 'Non_unique', 'Key_name');
 
-        foreach ($keys as $keyName => $value) {
-            $columns = null;
-            $isUnique = null;
-            foreach ($value as $columnName => $nonUnique) {
-                $columns .= $columnName . ',';
-            }
-            $isUnique = $nonUnique ? 0 : 1;
-            $columns = rtrim($columns, ',');
+        $primaryKeyName = $table->primaryKey;
+        foreach ($data as $index => $keyProperty) {
+            $keyName = $keyProperty['Key_name'];
+            $columnName = $keyProperty['Column_name'];
 
             $definition .= $textIndent; // text-indent 缩进
             $definition .= "\$this->runSuccess['$keyName'] = "; // record which key add successfully
 
-            if ('PRIMARY' === $keyName) { // add primary key
-                $definition .= "\$this->addPrimaryKey(null, '{{%$tableName}}', '$columns');";
-            } else {
-                $definition .= "\$this->createIndex('$keyName', '{{%$tableName}}', '$columns', $isUnique);";
+            // primary key
+            if (in_array($columnName, $primaryKeyName)) {
+                $definition .= "\$this->addPrimaryKey(null, '{{%$tableName}}', '{$columnName}');";
+
+                // auto_increment
+                if ($table->columns[$columnName]->autoIncrement) {
+                    $definition .= "\n{$textIndent}\$this->addAutoIncrement('{{%$tableName}}', '$columnName', '{$table->columns[$columnName]->type}');";
+                }
+
+            } else { // key
+                $isUnique = $keyProperty['Non_unique'] ? 0 : 1;
+                $definition .= "\$this->createIndex('$keyName', '{{%$tableName}}', '$columnName', {$isUnique});";
+
             }
 
             $definition .= self::ENTER;
-
         }
 
         return $definition;
@@ -546,17 +548,8 @@ DEFINITION;
      * @param ColumnSchema $column
      * @return string the schema type
      */
-    public static function getSchemaType($column)
+    public static function getSchemaType(ColumnSchema $column)
     {
-        // primary key
-        if ($column->isPrimaryKey && $column->autoIncrement) {
-            if ('bigint' === $column->type) {
-                return 'bigInteger()';
-            } elseif('smallint' === $column->type) {
-                return 'smallInteger()';
-            }
-            return 'integer()';
-        }
 
         // boolean
         if ('tinyint(1)' === $column->dbType) {
@@ -569,6 +562,14 @@ DEFINITION;
                 return 'smallInteger()';
             }
             return 'smallInteger';
+        }
+
+        // integer
+        if ('int' === $column->type) {
+            if (null === $column->size) {
+                return 'integer()';
+            }
+            return 'integer';
         }
 
         // bigint
@@ -607,10 +608,7 @@ DEFINITION;
         if (null !== $column->scale && 0 < $column->scale) {
             $definition .= "($column->precision,$column->scale)";
 
-        } elseif (null !== $column->size && ! $column->autoIncrement && 'tinyint(1)' !== $column->dbType) {
-            $definition .= "($column->size)";
-
-        } elseif (null !== $column->size && ! $column->isPrimaryKey && $column->unsigned) {
+        } elseif (null !== $column->size) {
             $definition .= "($column->size)";
         }
 
@@ -622,8 +620,7 @@ DEFINITION;
         // null
         if ($column->allowNull) {
             $definition .= '->null()';
-
-        } elseif (! $column->autoIncrement) {
+        } else {
             $definition .= '->notNull()';
         }
 

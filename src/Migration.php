@@ -13,7 +13,7 @@ use hzhihua\dump\models\Output;
 /**
  * Migration class file.
  * all migration file generated extends this file
- * @property yii\db\Transaction $_transaction
+ * @property \yii\db\Transaction $_transaction
  * @Author Hzhihua <cnzhihua@gmail.com>
  */
 class Migration extends \yii\db\Migration
@@ -77,4 +77,14 @@ class Migration extends \yii\db\Migration
         }
 
     }
+
+    public function addAutoIncrement($table, $column, $type)
+    {
+        $sql = $this->db->getQueryBuilder()->alterColumn($table, $column, $type);
+        $sql .= " unsigned NOT NULL AUTO_INCREMENT";
+        $time = $this->beginCommand($sql);
+        $this->db->createCommand()->setSql($sql)->execute();
+        $this->endCommand($time);
+    }
 }
+

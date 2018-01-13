@@ -43,8 +43,8 @@ abstract class AbstractOutput extends Component
 
     /**
      * print conclusion at the terminal
-     * @param $handleTable all table name that had been generate
-     * @param $filterTable all table name that had been filter
+     * @param $handleTable array table name that had been generate
+     * @param $filterTable array table name that had been filter
      */
     abstract public function conclusion($handleTable, $filterTable);
 
