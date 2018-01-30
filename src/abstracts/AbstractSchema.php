@@ -7,6 +7,7 @@
 
 namespace hzhihua\dump\abstracts;
 
+use Yii;
 use yii\base\Component;
 use yii\db\Connection;
 use yii\db\TableSchema;
@@ -119,13 +120,16 @@ abstract class AbstractSchema extends Component
      * @param $prefix string
      * @return string
      */
-    public static function removePrefix($string, $prefix)
+    public static function removePrefix($string, $prefix = null)
     {
         if (empty($prefix)) {
+            $prefix = Yii::$app->db->tablePrefix;
+        }
+
+        if (strpos($string, $prefix) === false) {
             return $string;
         }
 
-        $prefix = strtolower($prefix);
         $position = strpos($string, $prefix) + strlen($prefix);
 
         return substr($string, $position);

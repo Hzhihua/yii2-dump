@@ -229,34 +229,42 @@ DEFINITION;
     {
         $definition = '';
         $textIndent = $this->textIndent($indent);
-        $tableName = static::removePrefix($table->name, $this->db->tablePrefix);
+        $tablePrefix = $this->db->tablePrefix;
+        $tableName = static::removePrefix($table->name, $tablePrefix);
 
         $data = $this->db->createCommand('SHOW KEYS FROM ' . $table->name)->queryAll();
+        if (empty($data)) {
+            return '';
+        }
 
+        // primary key
         $primaryKeyName = $table->primaryKey;
-        foreach ($data as $index => $keyProperty) {
-            $keyName = $keyProperty['Key_name'];
-            $columnName = $keyProperty['Column_name'];
-
+        if ($primaryKeyName) {
+            $columnName = implode(',', $primaryKeyName);
             $definition .= $textIndent; // text-indent 缩进
-            $definition .= "\$this->runSuccess['$keyName'] = "; // record which key add successfully
+            $definition .= "\$this->addPrimaryKey(null, '{{%$tableName}}', '{$columnName}');\n";
+        }
 
-            // primary key
-            if (in_array($columnName, $primaryKeyName)) {
-                $definition .= "\$this->addPrimaryKey(null, '{{%$tableName}}', '{$columnName}');";
-
-                // auto_increment
-                if ($table->columns[$columnName]->autoIncrement) {
-                    $definition .= "\n{$textIndent}\$this->addAutoIncrement('{{%$tableName}}', '$columnName', '{$table->columns[$columnName]->type}');";
-                }
-
-            } else { // key
-                $isUnique = $keyProperty['Non_unique'] ? 0 : 1;
-                $definition .= "\$this->createIndex('$keyName', '{{%$tableName}}', '$columnName', {$isUnique});";
-
+        foreach ($data as $index => $keyProperty) {
+            if ('PRIMARY' === $keyProperty['Key_name']) {
+                continue;
             }
 
-            $definition .= self::ENTER;
+            $keyName = self::removePrefix($keyProperty['Key_name'], $tablePrefix);
+            $columnName = $keyProperty['Column_name'];
+
+            // auto_increment
+            if ($table->columns[$columnName]->autoIncrement) {
+                $definition .= $textIndent;
+                $definition .= "\$this->addAutoIncrement('{{%$tableName}}', '$columnName', '{$table->columns[$columnName]->type}');\n";
+            }
+
+            $definition .= $textIndent;
+            $definition .= "\$this->runSuccess['$keyName'] = "; // record which key add successfully
+            // key
+            $isUnique = $keyProperty['Non_unique'] ? 0 : 1;
+            $definition .= "\$this->createIndex('$keyName', '{{%$tableName}}', '$columnName', {$isUnique});\n";
+
         }
 
         return $definition;
@@ -299,6 +307,9 @@ DEFINITION;
             return '';
         }
 
+        $string = $this->db->createCommand("SHOW CREATE TABLE {$table->name}")->queryAll();
+        $onParams = $this->FKOnParams($string[0]['Create Table']);
+
         $textIndent = $this->textIndent($indent);
         $definition = $textIndent;
         $definition .= '$tablePrefix = \Yii::$app->getDb()->tablePrefix;' . self::ENTER;
@@ -308,6 +319,8 @@ DEFINITION;
             $refTable = '';
             $refColumns = '';
             $columns = '';
+            $delete = isset($onParams[$fkName]['ON DELETE']) ? "'{$onParams[$fkName]['ON DELETE']}'" : 'null';
+            $update = isset($onParams[$fkName]['ON UPDATE']) ? "'{$onParams[$fkName]['ON UPDATE']}'" : 'null';
             $fkName = static::removePrefix($fkName, $this->db->tablePrefix);
 
             foreach ($fk as $k => $v) {
@@ -322,12 +335,14 @@ DEFINITION;
             $definition .= $textIndent;
             $definition .= "\$this->runSuccess[\$tablePrefix.'{$fkName}'] = ";
             $definition .= sprintf(
-                    "\$this->addForeignKey(\$tablePrefix.'%s', '{{%%%s}}', '%s', '{{%%%s}}', '%s');" . self::ENTER,
+                    "\$this->addForeignKey(\$tablePrefix.'%s', '{{%%%s}}', '%s', '{{%%%s}}', '%s', %s, %s);" . self::ENTER,
                     $fkName, // 外健名称
                     $tableName, // 表名
                     $columns, // 列名
                     static::removePrefix($refTable, $this->db->tablePrefix), // 对应外健的表名
-                    $refColumns // 对应外健的列名
+                    $refColumns, // 对应外健的列名
+                    $delete, // ON DELETE
+                    $update // ON UPDATE
                 );
 
         }
@@ -541,6 +556,37 @@ DEFINITION;
         }
 
         return '';
+    }
+
+    /**
+     * 获取外键ON关键字参数
+     * @param $string "show create table <table-name>"
+     * @return array
+     */
+    public function FKOnParams($string)
+    {
+        $matchs = [];
+        $data = [];
+        $pattern = "RESTRICT|CASCADE|NO ACTION|SET DEFAULT|SET NULL";
+
+        // 匹配每一行
+        preg_match_all("/CONSTRAINT `([0-9a-zA-Z_]+)` FOREIGN KEY .*/", $string, $matchs);
+
+        foreach ($matchs[0] as $key => $fkSql) {
+            if (strpos($fkSql, 'ON DELETE') !== false) {
+                $match = [];
+                preg_match("/ON DELETE ($pattern)/", $fkSql, $match);
+                $data[$matchs[1][$key]]['ON DELETE'] = $match[1];
+            }
+
+            if (strpos($fkSql, 'ON UPDATE') !== false) {
+                $match = [];
+                preg_match("/ON UPDATE ($pattern)/", $fkSql, $match);
+                $data[$matchs[1][$key]]['ON UPDATE'] = $match[1];
+            }
+        }
+
+        return $data;
     }
 
     /**
