@@ -240,9 +240,18 @@ DEFINITION;
         // primary key
         $primaryKeyName = $table->primaryKey;
         if ($primaryKeyName) {
-            $columnName = implode(',', $primaryKeyName);
+            $columnNames = implode(',', $primaryKeyName);
             $definition .= $textIndent; // text-indent 缩进
-            $definition .= "\$this->addPrimaryKey(null, '{{%$tableName}}', '{$columnName}');\n";
+            $definition .= "\$this->addPrimaryKey(null, '{{%$tableName}}', '{$columnNames}');\n";
+
+            foreach ($primaryKeyName as $columnName) {
+                // auto_increment
+                if ($table->columns[$columnName]->autoIncrement) {
+                    $definition .= $textIndent;
+                    $definition .= "\$this->addAutoIncrement('{{%$tableName}}', '$columnName', '{$table->columns[$columnName]->type}');\n";
+                }
+            }
+
         }
 
         foreach ($data as $index => $keyProperty) {
@@ -252,12 +261,6 @@ DEFINITION;
 
             $keyName = self::removePrefix($keyProperty['Key_name'], $tablePrefix);
             $columnName = $keyProperty['Column_name'];
-
-            // auto_increment
-            if ($table->columns[$columnName]->autoIncrement) {
-                $definition .= $textIndent;
-                $definition .= "\$this->addAutoIncrement('{{%$tableName}}', '$columnName', '{$table->columns[$columnName]->type}');\n";
-            }
 
             $definition .= $textIndent;
             $definition .= "\$this->runSuccess['$keyName'] = "; // record which key add successfully
