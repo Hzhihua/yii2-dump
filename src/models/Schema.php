@@ -554,7 +554,8 @@ DEFINITION;
 
         foreach ($this->_tableStatus as $value) {
             if ($table->name === $value['Name'] && ! empty($value['Comment'])) {
-                return $definition . "\$this->addCommentOnTable('{{%$tableName}}', '{$value['Comment']}');";
+                $comment = addslashes($value['Comment']);
+                return $definition . "\$this->addCommentOnTable('{{%$tableName}}', '{$comment}');";
             }
         }
 
@@ -599,34 +600,11 @@ DEFINITION;
      */
     public static function getSchemaType(ColumnSchema $column)
     {
+        $type = '';
 
         // boolean
         if ('tinyint(1)' === $column->dbType) {
             return 'boolean()';
-        }
-
-        // smallint
-        if ('smallint' === $column->type) {
-            if (null === $column->size) {
-                return 'smallInteger()';
-            }
-            return 'smallInteger';
-        }
-
-        // integer
-        if ('int' === $column->type) {
-            if (null === $column->size) {
-                return 'integer()';
-            }
-            return 'integer';
-        }
-
-        // bigint
-        if ('bigint' === $column->type) {
-            if (null === $column->size) {
-                return 'bigInteger()';
-            }
-            return 'bigInteger';
         }
 
         // enum
@@ -636,12 +614,31 @@ DEFINITION;
             return "enum(['".implode('\', \'', $enumValues)."'])";
         }
 
-        // others
-        if (null === $column->size && 0 >= $column->scale) {
-            return $column->type.'()';
+        switch ($column->type) {
+            case 'smallint':
+                $type = 'smallInteger';
+                break;
+
+            case 'int':
+                $type = 'integer';
+                break;
+
+            case 'bigint':
+                $type = 'bigInteger';
+                break;
+
+            default:
+                $type = $column->type;
+                break;
         }
 
-        return $column->type;
+        // others
+        if (null === $column->size) {
+            return "$type()";
+        } else {
+            return "{$type}({$column->size})";
+        }
+
     }
 
     /**
@@ -652,14 +649,6 @@ DEFINITION;
     public static function other(ColumnSchema $column)
     {
         $definition = '';
-
-        // size
-        if (null !== $column->scale && 0 < $column->scale) {
-            $definition .= "($column->precision,$column->scale)";
-
-        } elseif (null !== $column->size) {
-            $definition .= "($column->size)";
-        }
 
         // unsigned
         if ($column->unsigned) {
