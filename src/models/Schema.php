@@ -26,7 +26,7 @@ class Schema extends AbstractSchema
     /**
      * enter 换行符号
      */
-    const ENTER = PHP_EOL;
+    const ENTER = "\n";
 
     /**
      * text ident format
@@ -90,8 +90,10 @@ class Schema extends AbstractSchema
         $definition = <<<DEFINITION
 {$textIndent}foreach (\$this->runSuccess as \$keyName => \$value) {
 {$textIndent}    if ('createTable' === \$keyName) {
+{$textIndent}        Output::stdout("    > drop table {{%$tableName}}" . self::ENTER, 0);
 {$textIndent}        \$this->dropTable('{{%$tableName}}');
 {$textIndent}    } elseif ('addTableComment' === \$keyName) {
+{$textIndent}        Output::stdout("    > drop comment from table {{%$tableName}}" . self::ENTER, 0);
 {$textIndent}        \$this->dropCommentFromTable('{{%$tableName}}');
 {$textIndent}    } else {
 {$textIndent}        throw new \yii\db\Exception('some errors in:' . __FILE__);
@@ -142,8 +144,16 @@ DEFINITION;
 
         $tableName = static::removePrefix($table->name, $this->db->tablePrefix);
 
-        $columns = $this->_arrayStyleString($table->columns, 'key', $indent + 1);
+        $tableColumns = $table->columns;
 
+        // 获取字段名称
+        $columns = $this->textIndent($indent + 1) . '[';
+        foreach ($tableColumns as $value) {
+            $columns .= "'{$value->name}', ";
+        }
+        $columns = rtrim($columns, ', ') . ']';
+
+//        $query = $this->db->createCommand("SELECT * FROM {$table->name} OFFSET {$_limit[0]} LIMIT $_limit[1]");
         $query = (new Query())
             ->select('*')
             ->from($table->name)
@@ -153,7 +163,7 @@ DEFINITION;
 
         if ($limitCount > $batchInsertLength) {
             // 批量查询
-            foreach ($query->batch(500) as $rows) {
+            foreach ($query->batch($batchInsertLength) as $rows) {
                 $data = array_merge($data, $rows);
             }
 
@@ -163,7 +173,7 @@ DEFINITION;
 
             $countData = count($data);
             for ($i = 0; $i < $countData; $i += $batchInsertLength) {
-                $insertData = $this->arrayStyleString(array_slice($data, $i, $batchInsertLength), $indent + 1);
+                $insertData = $this->twoArrayStyleString(array_slice($data, $i, $batchInsertLength), $tableColumns, $indent + 1);
 
                 // $this->batchInsert({{%tableName}},
                 //     [$columns],
@@ -171,7 +181,7 @@ DEFINITION;
                 // );
                 $definition .= $textIndent;
                 $definition .= "\$this->batchInsert('{{%$tableName}}', " . self::ENTER;
-                $definition .= $columns . ', ' . self::ENTER;
+                $definition .= $columns . ',' . self::ENTER;
                 $definition .= $insertData . self::ENTER;
                 $definition .= $textIndent . ');' . self::ENTER;
             }
@@ -183,7 +193,7 @@ DEFINITION;
                 return '';
             }
 
-            $insertData = $this->arrayStyleString($data, $indent + 1);
+            $insertData = $this->twoArrayStyleString($data, $tableColumns, $indent + 1);
 
             // $this->batchInsert({{%tableName}},
             //     [$columns],
@@ -191,7 +201,7 @@ DEFINITION;
             // );
             $definition .= $textIndent;
             $definition .= "\$this->batchInsert('{{%$tableName}}', " . self::ENTER;
-            $definition .= $columns . ', ' . self::ENTER;
+            $definition .= $columns . ',' . self::ENTER;
             $definition .= $insertData . self::ENTER;
             $definition .= $textIndent . ');' . self::ENTER;
         }
@@ -212,8 +222,10 @@ DEFINITION;
     {
         // Do not use "truncate tableName", it will delete all data of table, include data before you run "./yii migrate" commond
 
-        $definition = $this->textIndent($indent);
-        $definition .= '$this->_transaction->rollBack();';
+        $textIndent = $this->textIndent($indent);
+        $definition = "{$textIndent}Output::stdout('    > Transaction RollBack', 0);";
+        $definition .= self::ENTER;
+        $definition .= "{$textIndent}\$this->_transaction->rollBack();";
         $definition .= self::ENTER;
 
         return $definition;
@@ -237,36 +249,51 @@ DEFINITION;
             return '';
         }
 
-        // primary key
-        $primaryKeyName = $table->primaryKey;
-        if ($primaryKeyName) {
-            $columnNames = implode(',', $primaryKeyName);
-            $definition .= $textIndent; // text-indent 缩进
-            $definition .= "\$this->addPrimaryKey(null, '{{%$tableName}}', '{$columnNames}');\n";
-
-            foreach ($primaryKeyName as $columnName) {
-                // auto_increment
-                if ($table->columns[$columnName]->autoIncrement) {
-                    $definition .= $textIndent;
-                    $definition .= "\$this->addAutoIncrement('{{%$tableName}}', '$columnName', '{$table->columns[$columnName]->type}');\n";
-                }
+        // 获取索引数据，过滤主键
+        $keyData = [];
+        foreach ($data as $value) {
+            $keyName = static::removePrefix($value['Key_name'], $tablePrefix);
+            if (empty($keyData[$keyName])) {
+                $keyData[$keyName] = [];
             }
 
+            array_push($keyData[$keyName], [
+                'table' => $value['Table'],
+                'is_unique' => $value['Non_unique'] ? 0 : 1,
+                'column_name' => $value['Column_name'],
+                'allow_null' => $value['Null'],
+                'comment' => $value['Comment'],
+                'index_comment' => $value['Index_comment'],
+            ]);
         }
 
-        foreach ($data as $index => $keyProperty) {
-            if ('PRIMARY' === $keyProperty['Key_name']) {
-                continue;
-            }
-
-            $keyName = self::removePrefix($keyProperty['Key_name'], $tablePrefix);
-            $columnName = $keyProperty['Column_name'];
-
+        foreach ($keyData as $keyName => $value) {
+            $columns = implode(',', array_column($value,'column_name'));
             $definition .= $textIndent;
             $definition .= "\$this->runSuccess['$keyName'] = "; // record which key add successfully
-            // key
-            $isUnique = $keyProperty['Non_unique'] ? 0 : 1;
-            $definition .= "\$this->createIndex('$keyName', '{{%$tableName}}', '$columnName', {$isUnique});\n";
+
+            // primary key
+            if ('PRIMARY' === $keyName) {
+                $definition .= "\$this->addPrimaryKey(null, '{{%$tableName}}', '$columns');" . self::ENTER;
+
+                foreach ($keyData['PRIMARY'] as $column) {
+                    $column = $column['column_name']; // table column name
+                    // auto_increment
+                    if ($table->columns[$column]->autoIncrement) {
+                        $columnType = $table->columns[$column]->type;
+                        $property = $table->columns[$column]->unsigned ? 'unsigned' : '';
+                        $auto_increment = $this->getAutoIncrementNumber($table->name);
+                        $definition .= $textIndent;
+                        $definition .= "\$this->addAutoIncrement('{{%$tableName}}', '$column', '$columnType', '$property', $auto_increment);" . self::ENTER;
+                    }
+                }
+
+            } else {
+                // other keys except primary key
+                $isUnique = $value[0]['is_unique'];
+                $definition .= "\$this->createIndex('$keyName', '{{%$tableName}}', '$columns', {$isUnique});" . self::ENTER;
+            }
+
 
         }
 
@@ -287,8 +314,10 @@ DEFINITION;
         $definition = <<<DEFINITION
 {$textIndent}foreach (\$this->runSuccess as \$keyName => \$value) {
 {$textIndent}    if ('PRIMARY' === \$keyName) {
+{$textIndent}        Output::stdout("    > drop primary key \$keyName from table {{%$tableName}}" . self::ENTER, 0);
 {$textIndent}        \$this->dropPrimaryKey(null, '{{%$tableName}}');
 {$textIndent}    } else {
+{$textIndent}        Output::stdout("    > drop key \$keyName on table {{%$tableName}}" . self::ENTER, 0);
 {$textIndent}        \$this->dropIndex(\$keyName, '{{%$tableName}}');
 {$textIndent}    }
 {$textIndent}}
@@ -368,9 +397,9 @@ DEFINITION;
         $tableName = static::removePrefix($table->name, $this->db->tablePrefix);
 
         $definition = <<<DEFINITION
-{$textIndent}\$tablePrefix = \\Yii::\$app->getDb()->tablePrefix;
 {$textIndent}foreach (\$this->runSuccess as \$keyName => \$value) {
-{$textIndent}    \$this->dropForeignKey(\$tablePrefix.\$keyName, '{{%$tableName}}');
+{$textIndent}    Output::stdout("    > drop foreign key \$keyName from table {{%$tableName}}" . self::ENTER, 0);
+{$textIndent}    \$this->dropForeignKey(\$keyName, '{{%$tableName}}');
 {$textIndent}}
 DEFINITION;
 
@@ -379,20 +408,33 @@ DEFINITION;
     }
 
     /**
+     * 获取表自动增长的起始位置
+     * @param string $tableName 表名称，带前缀
+     * @return int
+     */
+    public function getAutoIncrementNumber($tableName)
+    {
+        $data = $this->db->createCommand("SHOW CREATE TABLE {$tableName}")->queryAll();
+        $startPosition = (int) strpos($data[0]['Create Table'], 'AUTO_INCREMENT=');
+        $endPosition = (int) strpos($data[0]['Create Table'], 'DEFAULT CHARSET=');
+
+        return $startPosition && $endPosition ? (int) substr($data[0]['Create Table'], $startPosition + 15, $endPosition - $startPosition - 1) : 0;
+    }
+
+    /**
      * return string of array style
      * eg: "[['1'], ['2'], ['3']]"
      * @param array $array 二维数组
+     * @param array $columnType 字段类型
      * @param int $indent int text-indent 文本缩进
      * @return string
      */
-    public function arrayStyleString(array $array, $indent = 0)
+    public function twoArrayStyleString(array $array, array $columnType, $indent = 0)
     {
-        $string = '';
-        $string .= $this->textIndent($indent) . '[';
-        $string .= self::ENTER;
+        $string = $this->textIndent($indent) . '[' . self::ENTER;
 
         foreach ($array as $key => $value) {
-            $string .= $this->_arrayStyleString($value, 'value', $indent + 1) . ',' . self::ENTER;
+            $string .= $this->oneArrayStyleString($value, $columnType, $indent + 1) . ',' . self::ENTER;
         }
 
         $string .= $this->textIndent($indent) . ']';
@@ -404,28 +446,23 @@ DEFINITION;
      * return string of array style
      * eg: "['1', '2', '3']"
      * @param array $array 一维数组
-     * @param string $type
+     * @param array $columnType 字段类型
      * @param int $indent int text-indent 文本缩进
      * @return string
      */
-    public function _arrayStyleString(array $array, $type = "value", $indent = 0)
+    public function oneArrayStyleString(array $data, array $columnType, $indent = 0)
     {
-        $string = '';
-        $string .= '[';
+        $string = '[';
 
-        if ('key' === $type) { // get column name
-            foreach ($array as $key => $value) {
-                $string .= '\'' . $key . '\', ';
-            }
-        } else {  // get rows data
-            foreach ($array as $key => $value) {
-                if (null === $value) {
-                    $string .= 'null, ';
-                } elseif (is_int($value)) {
-                    $string .= $value . ', ';
-                }else {
-                    $string .= '\'' . $value . '\', ';
-                }
+        // get rows data
+        foreach ($data as $columnName => $value) {
+            if (null === $value) {
+                $string .= 'null, ';
+            } elseif (false !== strpos($columnType[$columnName]->dbType, 'int')) {
+                $string .= (int) $value . ', ';
+            } else { // string text ...
+                $value = str_replace(["'", "\\", "\r\n"], ["\'", "\\", self::ENTER], $value);
+                $string .= "'{$value}', ";
             }
         }
 
@@ -600,8 +637,6 @@ DEFINITION;
      */
     public static function getSchemaType(ColumnSchema $column)
     {
-        $type = '';
-
         // boolean
         if ('tinyint(1)' === $column->dbType) {
             return 'boolean()';

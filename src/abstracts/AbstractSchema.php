@@ -123,7 +123,7 @@ abstract class AbstractSchema extends Component
     public static function removePrefix($string, $prefix = null)
     {
         if (empty($prefix)) {
-            $prefix = Yii::$app->db->tablePrefix;
+            $prefix = Yii::$app->controller->db->tablePrefix ?: null;
         }
 
         if (strpos($string, $prefix) === false) {

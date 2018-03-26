@@ -24,7 +24,7 @@ class Output extends AbstractOutput
     /**
      * enter 换行符号
      */
-    const ENTER = PHP_EOL;
+    const ENTER = "\n";
 
     /**
      * record start time with float
@@ -116,8 +116,8 @@ class Output extends AbstractOutput
 
     /**
      * print conclusion at the terminal
-     * @param $handleTable all table name that had been generate
-     * @param $filterTable all table name that had been filter
+     * @param $handleTable array all table name that had been generate
+     * @param $filterTable array all table name that had been filter
      */
     public function conclusion($handleTable, $filterTable)
     {

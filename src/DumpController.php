@@ -310,13 +310,13 @@ class DumpController extends Controller
         }
 
         $schema = $this->schema;
-        $this->schema = Instance::ensure($this->schema, Schema::className());
-        $this->db = Instance::ensure($this->db, Connection::className());
-        $this->schema->db = isset($schema['db']) ? Instance::ensure($schema['db'], Connection::className()) : $this->db;
+        $this->schema = Instance::ensure($this->schema, Schema::class);
+        $this->db = Instance::ensure($this->db, Connection::class);
+        $this->schema->db = isset($schema['db']) ? Instance::ensure($schema['db'], Connection::class) : $this->db;
         $this->output = Instance::ensure($this->output, 'hzhihua\dump\Models\Output');
 
         Yii::$app->i18n->translations['dump*'] =
-            $this->translations ? $this->translations : [
+            $this->translations ?: [
                 'class' => 'yii\i18n\PhpMessageSource',
                 'basePath' => __DIR__ . '/../messages',
                 'fileMap' => [

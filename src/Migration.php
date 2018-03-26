@@ -21,7 +21,7 @@ class Migration extends \yii\db\Migration
     /**
      * enter 换行符号
      */
-    const ENTER = PHP_EOL;
+    const ENTER = "\n";
 
     /**
      * @var string table additional options
@@ -34,7 +34,7 @@ class Migration extends \yii\db\Migration
     protected $runSuccess = [];
 
     /**
-     * @var null save transaction for insert table data
+     * @var \yii\db\Transaction save transaction for insert table data
      */
     protected $_transaction = null;
 
@@ -61,7 +61,6 @@ class Migration extends \yii\db\Migration
         try {
             Output::stdout('*** running safeUp' . self::ENTER, 0, Console::FG_YELLOW);
             $this->safeUp();
-            return true;
 
         } catch (Exception $e) {
 
@@ -76,12 +75,26 @@ class Migration extends \yii\db\Migration
             throw new Exception($e->getMessage(), $e->errorInfo, 1);
         }
 
+        return null;
     }
 
-    public function addAutoIncrement($table, $column, $type)
+    /**
+     * 添加自动增长
+     * @param string $table 表名{{%tableName}}
+     * @param string $column 字段名称
+     * @param string $columnType 字段类型
+     * @param boolean $property 字段属性
+     * @param int $auto_increment 自动增长字段的启始值
+     */
+    public function addAutoIncrement($table, $column, $columnType, $property = null, $auto_increment = 0)
     {
-        $sql = $this->db->getQueryBuilder()->alterColumn($table, $column, $type);
-        $sql .= " unsigned NOT NULL AUTO_INCREMENT";
+        $auto_increment = (int) $auto_increment;
+        $sql = $this->db->getQueryBuilder()->alterColumn($table, $column, $columnType);
+
+        (null !== $property) && $sql .= " $property ";
+        $sql .= " NOT NULL AUTO_INCREMENT";
+        (0 !== $auto_increment) && $sql .= ", AUTO_INCREMENT = {$auto_increment}";
+
         $time = $this->beginCommand($sql);
         $this->db->createCommand()->setSql($sql)->execute();
         $this->endCommand($time);
