@@ -249,7 +249,7 @@ DEFINITION;
             return '';
         }
 
-        // 获取索引数据，过滤主键
+        // 获取索引数据,包括主键
         $keyData = [];
         foreach ($data as $value) {
             $keyName = static::removePrefix($value['Key_name'], $tablePrefix);
@@ -284,6 +284,7 @@ DEFINITION;
                         $property = $table->columns[$column]->unsigned ? 'unsigned' : '';
                         $auto_increment = $this->getAutoIncrementNumber($table->name);
                         $definition .= $textIndent;
+                        $definition .= "\$this->runSuccess['addAutoIncrement'] = ";
                         $definition .= "\$this->addAutoIncrement('{{%$tableName}}', '$column', '$columnType', '$property', $auto_increment);" . self::ENTER;
                     }
                 }
@@ -316,6 +317,11 @@ DEFINITION;
 {$textIndent}    if ('PRIMARY' === \$keyName) {
 {$textIndent}        Output::stdout("    > drop primary key \$keyName from table {{%$tableName}}" . self::ENTER, 0);
 {$textIndent}        \$this->dropPrimaryKey(null, '{{%$tableName}}');
+
+{$textIndent}    } elseif ('addAutoIncrement' === \$keyName) {
+{$textIndent}        Output::stdout("    > drop addAutoIncrement on table {{%$tableName}}" . self::ENTER, 0);
+{$textIndent}        \$this->dropAutoIncrement("{{%{\$value['table_name']}}}", \$value['column_name'], \$value['column_type'], \$value['property']);
+
 {$textIndent}    } else {
 {$textIndent}        Output::stdout("    > drop key \$keyName on table {{%$tableName}}" . self::ENTER, 0);
 {$textIndent}        \$this->dropIndex(\$keyName, '{{%$tableName}}');

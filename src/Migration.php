@@ -85,6 +85,7 @@ class Migration extends \yii\db\Migration
      * @param string $columnType 字段类型
      * @param boolean $property 字段属性
      * @param int $auto_increment 自动增长字段的启始值
+     * @return array
      */
     public function addAutoIncrement($table, $column, $columnType, $property = null, $auto_increment = 0)
     {
@@ -94,6 +95,32 @@ class Migration extends \yii\db\Migration
         (null !== $property) && $sql .= " $property ";
         $sql .= " NOT NULL AUTO_INCREMENT";
         (0 !== $auto_increment) && $sql .= ", AUTO_INCREMENT = {$auto_increment}";
+
+        $time = $this->beginCommand($sql);
+        $this->db->createCommand()->setSql($sql)->execute();
+        $this->endCommand($time);
+
+        return [
+            'table_name' => $table,
+            'column_name' => $column,
+            'column_type' => $columnType,
+            'property' => $property,
+            'auto_increment' => $auto_increment,
+        ];
+    }
+
+    /**
+     * 删除自动增长
+     * @param string $table 表名{{%tableName}}
+     * @param string $column 字段名称
+     * @param string $columnType 字段类型
+     * @param boolean $property 字段属性
+     */
+    public function dropAutoIncrement($table, $column, $columnType, $property = null)
+    {
+        $sql = $this->db->getQueryBuilder()->alterColumn($table, $column, $columnType);
+        (null !== $property) && $sql .= " $property ";
+        $sql .= " NOT NULL ";
 
         $time = $this->beginCommand($sql);
         $this->db->createCommand()->setSql($sql)->execute();
