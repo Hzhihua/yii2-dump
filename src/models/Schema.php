@@ -96,7 +96,7 @@ class Schema extends AbstractSchema
 {$textIndent}        Output::stdout("    > drop comment from table {{%$tableName}}" . self::ENTER, 0);
 {$textIndent}        \$this->dropCommentFromTable('{{%$tableName}}');
 {$textIndent}    } else {
-{$textIndent}        throw new \yii\db\Exception('some errors in:' . __FILE__);
+{$textIndent}        throw new \yii\db\Exception('only support "dropTable" and "dropCommentFromTable"');
 {$textIndent}    }
 {$textIndent}}
 DEFINITION;
