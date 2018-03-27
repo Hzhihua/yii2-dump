@@ -151,7 +151,6 @@ DEFINITION;
         }
         $columns = rtrim($columns, ', ') . ']';
 
-//        $query = $this->db->createCommand("SELECT * FROM {$table->name} OFFSET {$_limit[0]} LIMIT $_limit[1]");
         $query = (new Query())
             ->select('*')
             ->from($table->name)
@@ -161,7 +160,7 @@ DEFINITION;
 
         if ($limitCount > $batchInsertLength) {
             // 批量查询
-            foreach ($query->batch($batchInsertLength) as $rows) {
+            foreach ($query->batch($batchInsertLength, $this->db) as $rows) {
                 $data = array_merge($data, $rows);
             }
 
@@ -185,7 +184,7 @@ DEFINITION;
             }
 
         } else {
-            $data = $query->all();
+            $data = $query->all($this->db);
 
             if (empty($data)) {
                 return '';
