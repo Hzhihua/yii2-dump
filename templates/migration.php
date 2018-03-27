@@ -14,7 +14,6 @@ echo "<?php\n";
 ?>
 
 use hzhihua\dump\Migration;
-use hzhihua\dump\models\Output;
 
 /**
  * Class <?= $className . "\n"?>

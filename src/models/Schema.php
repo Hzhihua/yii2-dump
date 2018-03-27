@@ -90,10 +90,8 @@ class Schema extends AbstractSchema
         $definition = <<<DEFINITION
 {$textIndent}foreach (\$this->runSuccess as \$keyName => \$value) {
 {$textIndent}    if ('createTable' === \$keyName) {
-{$textIndent}        Output::stdout("    > drop table {{%$tableName}}" . self::ENTER, 0);
 {$textIndent}        \$this->dropTable('{{%$tableName}}');
 {$textIndent}    } elseif ('addTableComment' === \$keyName) {
-{$textIndent}        Output::stdout("    > drop comment from table {{%$tableName}}" . self::ENTER, 0);
 {$textIndent}        \$this->dropCommentFromTable('{{%$tableName}}');
 {$textIndent}    } else {
 {$textIndent}        throw new \yii\db\Exception('only support "dropTable" and "dropCommentFromTable"');
@@ -222,10 +220,8 @@ DEFINITION;
     {
         // Do not use "truncate tableName", it will delete all data of table, include data before you run "./yii migrate" commond
 
-        $textIndent = $this->textIndent($indent);
-        $definition = "{$textIndent}Output::stdout('    > Transaction RollBack', 0);";
-        $definition .= self::ENTER;
-        $definition .= "{$textIndent}\$this->_transaction->rollBack();";
+        $definition = $this->textIndent($indent);
+        $definition .= "\$this->_transaction->rollBack();";
         $definition .= self::ENTER;
 
         return $definition;
@@ -314,17 +310,17 @@ DEFINITION;
 
         $definition = <<<DEFINITION
 {$textIndent}foreach (\$this->runSuccess as \$keyName => \$value) {
-{$textIndent}    if ('PRIMARY' === \$keyName) {
-{$textIndent}        Output::stdout("    > drop primary key \$keyName from table {{%$tableName}}" . self::ENTER, 0);
-{$textIndent}        \$this->dropPrimaryKey(null, '{{%$tableName}}');
-
-{$textIndent}    } elseif ('addAutoIncrement' === \$keyName) {
-{$textIndent}        Output::stdout("    > drop addAutoIncrement on table {{%$tableName}}" . self::ENTER, 0);
-{$textIndent}        \$this->dropAutoIncrement("{{%{\$value['table_name']}}}", \$value['column_name'], \$value['column_type'], \$value['property']);
-
-{$textIndent}    } else {
-{$textIndent}        Output::stdout("    > drop key \$keyName on table {{%$tableName}}" . self::ENTER, 0);
-{$textIndent}        \$this->dropIndex(\$keyName, '{{%$tableName}}');
+{$textIndent}    if ('addAutoIncrement' === \$keyName) {
+{$textIndent}        continue;
+{$textIndent}    } elseif ('PRIMARY' === \$keyName) {
+{$textIndent}        // must be remove auto_increment before drop primary key
+{$textIndent}        if (isset(\$this->runSuccess['addAutoIncrement'])) {
+{$textIndent}            \$value = \$this->runSuccess['addAutoIncrement'];
+{$textIndent}            \$this->dropAutoIncrement("{\$value['table_name']}", \$value['column_name'], \$value['column_type'], \$value['property']);
+{$textIndent}        }
+{$textIndent}        \$this->dropPrimaryKey(null, '{{%{$tableName}}}');
+{$textIndent}    } elseif (!empty(\$keyName)) {
+{$textIndent}        \$this->dropIndex("`\$keyName`", '{{%{$tableName}}}');
 {$textIndent}    }
 {$textIndent}}
 DEFINITION;
@@ -404,7 +400,6 @@ DEFINITION;
 
         $definition = <<<DEFINITION
 {$textIndent}foreach (\$this->runSuccess as \$keyName => \$value) {
-{$textIndent}    Output::stdout("    > drop foreign key \$keyName from table {{%$tableName}}" . self::ENTER, 0);
 {$textIndent}    \$this->dropForeignKey(\$keyName, '{{%$tableName}}');
 {$textIndent}}
 DEFINITION;

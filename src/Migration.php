@@ -93,7 +93,7 @@ class Migration extends \yii\db\Migration
         $sql = $this->db->getQueryBuilder()->alterColumn($table, $column, $columnType);
 
         (null !== $property) && $sql .= " $property ";
-        $sql .= " NOT NULL AUTO_INCREMENT";
+        $sql .= "NOT NULL AUTO_INCREMENT";
         (0 !== $auto_increment) && $sql .= ", AUTO_INCREMENT = {$auto_increment}";
 
         $time = $this->beginCommand($sql);
@@ -118,11 +118,28 @@ class Migration extends \yii\db\Migration
      */
     public function dropAutoIncrement($table, $column, $columnType, $property = null)
     {
+        $tip = "drop auto_increment on {$table}";
         $sql = $this->db->getQueryBuilder()->alterColumn($table, $column, $columnType);
         (null !== $property) && $sql .= " $property ";
-        $sql .= " NOT NULL ";
+        $sql .= "NOT NULL";
 
-        $time = $this->beginCommand($sql);
+        $time = $this->beginCommand($tip);
+        $this->db->createCommand()->setSql($sql)->execute();
+        $this->endCommand($time);
+    }
+
+    /**
+     * 删除主键
+     * @param string $name
+     * @param string $table
+     */
+    public function dropPrimaryKey($name, $table)
+    {
+        $tip = "drop primary key on {$table}";
+        $sql =  'ALTER TABLE ' . $this->db->quoteTableName($table)
+            . ' DROP PRIMARY KEY';
+
+        $time = $this->beginCommand($tip);
         $this->db->createCommand()->setSql($sql)->execute();
         $this->endCommand($time);
     }
