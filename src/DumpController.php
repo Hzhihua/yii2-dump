@@ -16,6 +16,8 @@ use yii\console\Controller;
 use hzhihua\dump\models\Schema;
 
 /**
+ * Generate migration file from an existing database
+ *
  * ## Configuration in *console/config/main.php*
  * ```
  * return [
