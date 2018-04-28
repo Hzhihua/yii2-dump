@@ -10,6 +10,7 @@ Generate migration file from an existing database
 
 ## Test Environment
 
+- PHP >= 5.5.0
 - MySQL(5.6.36)
 
 ## Installation
