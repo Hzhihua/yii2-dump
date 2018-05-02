@@ -7,6 +7,7 @@
 
 namespace hzhihua\dump;
 
+use Yii;
 use yii\db\Exception;
 use yii\helpers\Console;
 use hzhihua\dump\models\Output;
@@ -48,7 +49,26 @@ class Migration extends \yii\db\Migration
         if ($this->db->driverName === 'mysql') {
             // https://stackoverflow.com/questions/766809/whats-the-difference-between-utf8-general-ci-and-utf8-unicode-ci
             // use utf8mb4 may cause some errors that "Syntax error or access violation: 1071 Specified key was too long; max key length is 767 bytes" for "ADD UNIQUE INDEX"
-            $this->tableOptions = " ENGINE=InnoDB CHARACTER SET=utf8 COLLATE=utf8_unicode_ci ";
+            // you can use " ENGINE=InnoDB CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci " for mysql >= 5.7
+
+            $controllerMap = Yii::$app->controllerMap;
+            foreach ($controllerMap as $key => $value) {
+                if (
+                    isset($value['tableOptions']) &&
+                    isset($value['class']) &&
+                    $value['class'] === 'hzhihua\dump\DumpController'
+                ) {
+                    $tableOptions = sprintf(
+                        ' %s ',
+                        $controllerMap[$key]['tableOptions']
+                    );
+                    break;
+                }
+            }
+
+            isset($tableOptions) || $this->tableOptions = ' ENGINE=InnoDB CHARACTER SET=utf8 COLLATE=utf8_unicode_ci ';
+        } else {
+            throw new Exception('Sorry, we only support mysql database.');
         }
     }
 

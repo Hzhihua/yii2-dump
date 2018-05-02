@@ -135,6 +135,38 @@ class DumpController extends Controller
     public $migrationTable = 'migration';
 
     /**
+     * table options for application migrate file
+     * **you can use " ENGINE=InnoDB CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci " for mysql >= 5.7**
+     *
+     * Default: " ENGINE=InnoDB CHARACTER SET=utf8 COLLATE=utf8_unicode_ci "
+     *
+     * ```
+     * create table `user` (
+     *     ... ...
+     * ) ENGINE=InnoDB CHARACTER SET=utf8 COLLATE=utf8_unicode_ci;
+     * ```
+     *
+     * @var string
+     */
+    public $tableOptions = null;
+
+    /**
+     * migrate file prefix
+     * default: current timestamp
+     *
+     * Usage:
+     * ```php
+     * [
+     *      'class' => 'hzhihua\dump\DumpController',
+     *      'filePrefix' => '123456_789012',
+     * ],
+     * ```
+     *
+     * @var null
+     */
+    public $filePrefix = null;
+
+    /**
      *
      * ```
      * ./yii dump -type=0 # generate table migration file
@@ -656,7 +688,7 @@ class DumpController extends Controller
         return [
             'safeUp' => $safeUp ? "\n" . $safeUp . "\n" : '',
             'safeDown' => $safeDown ? "\n" . $safeDown . "\n" : '',
-            'className' => static::getClassName($order . '_' . $functionName . '_' . $tableName),
+            'className' => static::getClassName($order . '_' . $functionName . '_' . $tableName, $this->filePrefix),
         ];
         
     }
@@ -765,8 +797,16 @@ class DumpController extends Controller
      * @param string $classDesc class name description
      * @return string
      */
-    public static function getClassName($classDesc)
+    public static function getClassName($classDesc, $filePrefix = null)
     {
+        if ($filePrefix) {
+            return sprintf(
+                "m%s_%s",
+                $filePrefix,
+                $classDesc
+            );
+        }
+
         $time = $_SERVER['REQUEST_TIME'];
 
         // 文件名必须以"m123456_123456_"开头

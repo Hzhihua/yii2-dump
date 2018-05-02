@@ -16,7 +16,7 @@ Generate migration file from an existing database
 ## Installation
 
 ```
-composer require --prefer-dist hzhihua/yii2-dump
+composer require --prefer-dist "hzhihua/yii2-dump:1.0.3"
 ```
 
 ## Configuration
@@ -29,7 +29,9 @@ Add the following in console/config/main.php:
 return [
     'controllerMap' => [
         'dump' => [
-            'class' => 'hzhihua\\dump\\DumpController',
+            'class' => 'hzhihua\dump\DumpController',
+            'filePrefix' => '123456_654321',
+            'tableOptions' => 'ENGINE=InnoDB CHARACTER SET=utf8 COLLATE=utf8_unicode_ci', // if mysql >= 5.7, you can set “ENGINE=InnoDB CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci”,
         ],
     ],
 ];
@@ -48,6 +50,8 @@ return [
             'table' => 'table1,table2', // select which table will be dump(default filter migration table)
             'filter' => 'table3,table4', // table3 and table4 will be filtered when generating migration file
             'limit' => '0,1000', // select * from tableName limit 0,1000
+            'filePrefix' => '123456_654321',
+            'tableOptions' => 'ENGINE=InnoDB CHARACTER SET=utf8 COLLATE=utf8_unicode_ci', // if mysql >= 5.7, you can set “ENGINE=InnoDB CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci”,
             // ... ...
         ],
     ],
